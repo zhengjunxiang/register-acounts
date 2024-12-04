@@ -52,28 +52,33 @@ async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
       await page.waitForSelector('.tnh-sign-up')
       await page.click('.tnh-sign-up')
 
-      // 选择 trade role
-      // TODO: 存在不需要选择角色的情况
-      await page.waitForSelector('.ant-radio-wrapper:nth-child(2)');
-      await page.click('.ant-radio-wrapper:nth-child(2)');
+      try {
+        await page.waitForSelector('.ant-radio-wrapper', { timeout: 6000 });
+        // 选择 trade role
+        await page.click('.ant-radio-wrapper:nth-child(2)');
+        console.log('元素已存在');
+      } catch (err) {
+        console.error('元素未找到或超时:', err.message);
+      }
 
       await page.waitForSelector('input[name="email"]');
+
       // 填写表单信息
       await page.type('input[name="email"]', account.email, { delay: 100 });
       await page.type('input[name="password"]', account.password, { delay: 100 });
       await page.type('input[name="confirmPassword"]', account.password, { delay: 100 });
+      await selectDropdownOptionByIndex(page, 'div[name=mobileArea]', 1);
       await page.type('input[name="mobile"]', account.mobile, { delay: 100 });
       await page.type('input[name="companyName"]', account.company, { delay: 100 });
       await page.type('input[name="firstName"]', account.firstName, { delay: 100 });
       await page.type('input[name="lastName"]', account.lastName, { delay: 100 });
-      await page.type('input[name="address"]', account.address, { delay: 100 });
 
       // 选择地址
       // 依次选择省、市、区下拉框的指定索引值
       await selectDropdownOptionByIndex(page, 'div[name=province]', 1); // 选择省的第2个选项
       await selectDropdownOptionByIndex(page, 'div[name=city]', 2);     // 选择市的第3个选项
       await selectDropdownOptionByIndex(page, 'div[name=area]', 3);     // 选择区的第4个选项
-
+      await page.type('input[name="address"]', account.address, { delay: 100 });
 
       // 处理滑动条
       // 等待滑块加载
@@ -93,14 +98,16 @@ async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
       await page.mouse.move(endX, startY, { steps: 30 }); // 滑动到目标位置（步数可以调整）
       await page.mouse.up(); // 松开鼠标
 
+      await page.waitForFunction(() => {
+        const element = document.getElementById('nc_2_n1z');
+        return element && element.classList.contains('btn_ok'); // 等待元素包含类名
+      }, { timeout: 30000 }); // 设置超时时间（单位：毫秒）
+
       // 点击 I agree to
       await page.click('input[name="memberAgreement"]');
-      // TODO: 判断滑动是否验证完成
-      await delay(5000)
       // 提交表单
       await page.click('button.RP-form-submit');
-      await delay(1000); // 等待注册完成
-      console.log(`账号 ${account.email} 注册完成！`);
+      // console.log(`账号 ${account.email} 注册完成！`);
     } catch (err) {
       console.error(`注册账号 ${account.email} 失败:`, err);
     }
