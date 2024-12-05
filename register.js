@@ -1,6 +1,9 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 
+const { getPhoneNumber, getSmsCode } = require('./utils').default
+const { smsAPI } = require('./const').default
+
 // 读取账号信息
 const accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf-8'));
 
@@ -17,6 +20,7 @@ async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
   // 等待下拉选项的容器加载
   const dropdownSelector = '.ant-select-dropdown';
   await page.waitForSelector(dropdownSelector);
+  await delay(300)
 
   // 查找并点击指定索引的选项
   await page.evaluate((index, dropdownSelector) => {
@@ -56,10 +60,16 @@ async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
         await page.waitForSelector('.ant-radio-wrapper', { timeout: 6000 });
         // 选择 trade role
         await page.click('.ant-radio-wrapper:nth-child(2)');
-        console.log('元素已存在');
       } catch (err) {
         console.error('元素未找到或超时:', err.message);
       }
+
+      // 先获取手机号
+      const apiKey = smsAPI;
+      const country = 3; // 国家代码（0 表示任意国家）
+      const service = 'hw'; // 平台服务标识
+      const phoneInfo = await getPhoneNumber(apiKey, country, service);
+      console.log(`手机号: ${phoneInfo.phone}, 订单ID: ${phoneInfo.id}`);
 
       await page.waitForSelector('input[name="email"]');
 
@@ -67,8 +77,9 @@ async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
       await page.type('input[name="email"]', account.email, { delay: 100 });
       await page.type('input[name="password"]', account.password, { delay: 100 });
       await page.type('input[name="confirmPassword"]', account.password, { delay: 100 });
-      await selectDropdownOptionByIndex(page, 'div[name=mobileArea]', 1);
-      await page.type('input[name="mobile"]', account.mobile, { delay: 100 });
+      await selectDropdownOptionByIndex(page, 'div[name=mobileArea]', 0);
+      // 去除区号
+      await page.type('input[name="mobile"]', phoneInfo.phone.replace(account.mobileArea, ''), { delay: 100 });
       await page.type('input[name="companyName"]', account.company, { delay: 100 });
       await page.type('input[name="firstName"]', account.firstName, { delay: 100 });
       await page.type('input[name="lastName"]', account.lastName, { delay: 100 });
@@ -107,11 +118,17 @@ async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
       await page.click('input[name="memberAgreement"]');
       // 提交表单
       await page.click('button.RP-form-submit');
+
+      // 获取手机验证码
+      const smsCode = await getSmsCode(apiKey, phoneInfo.id);
+      console.log(`收到验证码: ${smsCode}`);
+
+      await page.type('input[name="mobileVerifyCode"]', smsCode, { delay: 100 });
+
       // console.log(`账号 ${account.email} 注册完成！`);
     } catch (err) {
       console.error(`注册账号 ${account.email} 失败:`, err);
     }
   }
-
   // await browser.close();
 })();

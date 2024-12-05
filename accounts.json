@@ -1,13 +1,13 @@
 [
 
   {
-    "email": "example2@mail.com",
+    "email": "example1@mail.com",
     "password": "Password123",
     "company": "Company B",
     "country": "Canada",
     "firstName": "lem",
     "lastName": "wade",
-    "mobile": "18810076541",
+    "mobileArea": "86",
     "address": "建设路，财富大厦"
   }
 ]
