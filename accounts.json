@@ -1,13 +1,12 @@
 [
-
   {
-    "email": "example1@mail.com",
     "password": "Password123",
     "company": "Company B",
     "country": "Canada",
     "firstName": "lem",
     "lastName": "wade",
-    "mobileArea": "86",
-    "address": "建设路，财富大厦"
+    "phoneAreaCode": "86",
+    "address": "建设路，财富大厦",
+    "phoneNumber": "18810087651"
   }
 ]

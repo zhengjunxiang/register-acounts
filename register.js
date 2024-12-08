@@ -1,134 +1,147 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const logger = require('./logger'); // 引入日志模块
+const { getTempEmail, checkEmail, getRandomNumber } = require('./utils').default;
 
-const { getPhoneNumber, getSmsCode } = require('./utils').default
-const { smsAPI } = require('./const').default
-
-// 读取账号信息
 const accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf-8'));
 
 // 延迟函数
 const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
-console.log('accounts', accounts);
+async function navigateToRegistrationPage(page) {
+  try {
+    await page.goto('https://alibaba.com/', { waitUntil: ['domcontentloaded', 'networkidle2'] });
+    await page.waitForSelector('.tnh-button.tnh-sign-up');
+    await page.click('.tnh-button.tnh-sign-up');
+  } catch (err) {
+    logger.error('导航到注册页面失败: ' + err.message);
+    throw err;
+  }
+}
 
-async function selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
-  // 点击下拉框触发器
-  await page.click(triggerSelector);
-  await delay(1000); // 等待下拉框内容显示
+async function fillRegistrationForm(page, account, email) {
+  try {
+    // 选择 trade role
+    await page.waitForSelector('.ant-radio-group .ant-radio-wrapper', { timeout: 6000 });
+    await page.click('.ant-radio-group .ant-radio-wrapper:nth-child(1)');
+    await page.waitForSelector('input[name="email"]');
+    await page.type('input[name="email"]', email, { delay: 100 });
+    await page.type('input[name="password"]', account.password, { delay: 100 });
+    await page.type('input[name="confirmPassword"]', account.password, { delay: 100 });
+    await page.type('input[name="companyName"]', account.company, { delay: 100 });
+    await page.type('input[name="firstName"]', account.firstName, { delay: 100 });
+    await page.type('input[name="lastName"]', account.lastName, { delay: 100 });
+    await page.type('input[name="phoneAreaCode"]', account.phoneAreaCode, { delay: 100 });
+    await page.type('input[name="phoneNumber"]', account.phoneNumber, { delay: 100 });
+  } catch (err) {
+    logger.error('填写注册表单失败: ' + err.message);
+    throw err;
+  }
+}
 
-  // 等待下拉选项的容器加载
-  const dropdownSelector = '.ant-select-dropdown';
-  await page.waitForSelector(dropdownSelector);
-  await delay(300)
+async function handleSlider(page) {
+  try {
+    await page.waitForSelector('#xjoin_no_captcha .nc_wrapper .nc_scale .btn_slide');
+    const sliderHandle = await page.$('#xjoin_no_captcha .nc_wrapper .nc_scale .btn_slide');
+    const sliderContainer = await page.$('#xjoin_no_captcha .nc_wrapper');
 
-  // 查找并点击指定索引的选项
-  await page.evaluate((index, dropdownSelector) => {
-    const dropdowns = document.querySelectorAll(dropdownSelector);
-    const latestDropdown = dropdowns[dropdowns.length - 1]; // 找到最新显示的下拉框
-    const options = Array.from(latestDropdown.querySelectorAll('.ant-select-item'));
-    if (options[index]) {
-      options[index].click();
-    } else {
-      throw new Error(`Option with index ${index} not found`);
+    const sliderBox = await sliderHandle.boundingBox();
+    const containerBox = await sliderContainer.boundingBox();
+
+    const startX = sliderBox.x + sliderBox.width / 2;
+    const startY = sliderBox.y + sliderBox.height / 2;
+    const endX = containerBox.x + containerBox.width - sliderBox.width / 2;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(endX, startY, { steps: getRandomNumber(5, 20) });
+    await delay(getRandomNumber(300, 600));
+    await page.mouse.up();
+
+    await page.waitForFunction(() => {
+      const element = document.getElementById('nc_2_n1z');
+      return element && element.classList.contains('btn_ok');
+    }, { timeout: 30000 });
+  } catch (err) {
+    logger.error('滑块验证失败: ' + err.message);
+    throw err;
+  }
+}
+
+async function handleVerification(page, email) {
+  try {
+    const verificationCode = await checkEmail(email);
+    if (verificationCode) {
+      await page.type('input[name="emailVerifyCode"]', verificationCode, { delay: 100 });
+      await delay(600);
     }
-  }, optionIndex, dropdownSelector);
-
-  await delay(500); // 等待选项被选中
+  } catch (err) {
+    logger.error('处理验证码失败: ' + err.message);
+    throw err;
+  }
 }
 
 (async () => {
   const browser = await puppeteer.launch({
     headless: false,
-    defaultViewport: {
-      width: 1280,
-      height: 1024
-    },
-  }); // 设置 headless: true 可以无界面运行
-  const page = await browser.newPage();
+    defaultViewport: { width: 1280, height: 1024 },
+  });
 
   for (const account of accounts) {
+    const page = await browser.newPage();
     try {
-      console.log(`开始注册账号：${account.email}`);
-      // 进入首页，点击注册按钮
-      await page.goto('https://alibaba.com/', { waitUntil: "domcontentloaded" });
-      await delay(800); // 等待页面加载
-      await page.waitForSelector('.tnh-sign-up')
-      await page.click('.tnh-sign-up')
+      await navigateToRegistrationPage(page);
 
-      try {
-        await page.waitForSelector('.ant-radio-wrapper', { timeout: 6000 });
-        // 选择 trade role
-        await page.click('.ant-radio-wrapper:nth-child(2)');
-      } catch (err) {
-        console.error('元素未找到或超时:', err.message);
-      }
+      const email = await getTempEmail();
+      logger.info(`使用临时邮箱注册: ${email}`);
 
-      // 先获取手机号
-      const apiKey = smsAPI;
-      const country = 3; // 国家代码（0 表示任意国家）
-      const service = 'hw'; // 平台服务标识
-      const phoneInfo = await getPhoneNumber(apiKey, country, service);
-      console.log(`手机号: ${phoneInfo.phone}, 订单ID: ${phoneInfo.id}`);
+      await delay(1000);
 
-      await page.waitForSelector('input[name="email"]');
+      await fillRegistrationForm(page, account, email);
+      await handleSlider(page);
 
-      // 填写表单信息
-      await page.type('input[name="email"]', account.email, { delay: 100 });
-      await page.type('input[name="password"]', account.password, { delay: 100 });
-      await page.type('input[name="confirmPassword"]', account.password, { delay: 100 });
-      await selectDropdownOptionByIndex(page, 'div[name=mobileArea]', 0);
-      // 去除区号
-      await page.type('input[name="mobile"]', phoneInfo.phone.replace(account.mobileArea, ''), { delay: 100 });
-      await page.type('input[name="companyName"]', account.company, { delay: 100 });
-      await page.type('input[name="firstName"]', account.firstName, { delay: 100 });
-      await page.type('input[name="lastName"]', account.lastName, { delay: 100 });
-
-      // 选择地址
-      // 依次选择省、市、区下拉框的指定索引值
-      await selectDropdownOptionByIndex(page, 'div[name=province]', 1); // 选择省的第2个选项
-      await selectDropdownOptionByIndex(page, 'div[name=city]', 2);     // 选择市的第3个选项
-      await selectDropdownOptionByIndex(page, 'div[name=area]', 3);     // 选择区的第4个选项
-      await page.type('input[name="address"]', account.address, { delay: 100 });
-
-      // 处理滑动条
-      // 等待滑块加载
-      await page.waitForSelector('#nc_2_n1z');
-      // 定位滑块和滑块容器
-      const sliderHandle = await page.$('#nc_2_n1z'); // 滑块
-      const sliderContainer = await page.$('#nc_2_wrapper'); // 滑块的容器
-      // 获取滑块的位置和宽度
-      const sliderBox = await sliderHandle.boundingBox();
-      const containerBox = await sliderContainer.boundingBox();
-      const startX = sliderBox.x + sliderBox.width / 2; // 滑块的起始位置
-      const startY = sliderBox.y + sliderBox.height / 2; // 滑块的垂直位置
-      const endX = containerBox.x + containerBox.width - sliderBox.width / 2; // 滑块的目标位置
-      // 模拟鼠标拖动
-      await page.mouse.move(startX, startY); // 移动到滑块起始位置
-      await page.mouse.down(); // 按下鼠标
-      await page.mouse.move(endX, startY, { steps: 30 }); // 滑动到目标位置（步数可以调整）
-      await page.mouse.up(); // 松开鼠标
-
-      await page.waitForFunction(() => {
-        const element = document.getElementById('nc_2_n1z');
-        return element && element.classList.contains('btn_ok'); // 等待元素包含类名
-      }, { timeout: 30000 }); // 设置超时时间（单位：毫秒）
-
-      // 点击 I agree to
       await page.click('input[name="memberAgreement"]');
-      // 提交表单
       await page.click('button.RP-form-submit');
 
-      // 获取手机验证码
-      const smsCode = await getSmsCode(apiKey, phoneInfo.id);
-      console.log(`收到验证码: ${smsCode}`);
+      await handleVerification(page, email);
 
-      await page.type('input[name="mobileVerifyCode"]', smsCode, { delay: 100 });
+      // 点击注册
+      await page.click('.RP-modal-item:nth-child(3) button.RP-modal-button');
+      logger.info(`账号 ${email} 注册成功！`);
+      await delay(5000)
+      // 等待登录完成
+      await await page.waitForSelector('.tnh-loggedin .tnh-ma');
+      await delay(5000)
 
-      // console.log(`账号 ${account.email} 注册完成！`);
+      // 跳转到 ug 进行用户设置
+      const cookies = await page.cookies();
+      await page.goto('https://ug.alibaba.com/?wx_navbar_transparent=true', { waitUntil: 'domcontentloaded' });
+      await page.setCookie(...cookies);
+      await page.reload({ waitUntil: 'networkidle2' });
+      await delay(1000)
+      await page.waitForSelector('.mb-header-wrapper .mb-header-button');
+      await page.click('.mb-header-wrapper .mb-header-button');
+
+      await page.waitForSelector('.upgradeToDialog .member-index-main .business-identify-group');
+      await page.click('.business-identify-group .business-identify-type:last-child');
+      await delay(600)
+      await page.click('.upgradeToDialog .layout-footer .footer-button');
+      await delay(500)
+
+      // 下一步
+      await page.type('input#street', 'sfdsdf', { delay: 100 });
+      await page.type('input#province', 'sfdsdf', { delay: 100 });
+      await page.type('input#city', 'sfdsdf', { delay: 100 });
+      await page.waitForSelector('.upgradeToDialog .clause-box .fold-box .fold-box-checkbox');
+      await delay(500)
+      await page.click('.upgradeToDialog .layout-footer .footer-button');
     } catch (err) {
-      console.error(`注册账号 ${account.email} 失败:`, err);
+      logger.error(`账号注册失败: ${err.message}`);
+    } finally {
+      // await page.close();
     }
   }
+
   // await browser.close();
+  logger.info('所有任务完成');
 })();
