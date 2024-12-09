@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const logger = require('./logger'); // 引入日志模块
 const { getTempEmail, checkEmail, getRandomNumber } = require('./utils').default;
@@ -7,6 +7,22 @@ const accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf-8'));
 
 // 延迟函数
 const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
+
+// 自动获取 Chrome 的路径
+async function getChromePath() {
+  try {
+    const { Launcher } = await import('chrome-launcher');
+    const installation = await Launcher.getInstallations();
+    if (installation && installation.length > 0) {
+      logger.info(`检测到 Chrome 安装路径: ${installation[0]}`);
+      return installation[0];
+    }
+    throw new Error('未找到 Chrome 安装');
+  } catch (err) {
+    logger.error('检测 Chrome 安装路径失败: ' + err.message);
+    return null;
+  }
+}
 
 async function navigateToRegistrationPage(page) {
   try {
@@ -21,6 +37,11 @@ async function navigateToRegistrationPage(page) {
 
 async function fillRegistrationForm(page, account, email) {
   try {
+    // 选择国家：America
+    await page.waitForSelector('div[name="countryCode"]', { timeout: 6000 });
+    await page.click('div[name="countryCode"]');
+    await page.type('div[name="countryCode"]', account.country, { delay: 100 });
+    await page.click('.rc-virtual-list .ant-select-item.ant-select-item-option:nth-child(1)');
     // 选择 trade role
     await page.waitForSelector('.ant-radio-group .ant-radio-wrapper', { timeout: 6000 });
     await page.click('.ant-radio-group .ant-radio-wrapper:nth-child(1)');
@@ -82,14 +103,34 @@ async function handleVerification(page, email) {
 }
 
 (async () => {
+  const chromePath = await getChromePath();
+  if (!chromePath) {
+    logger.error(
+      '未检测到系统中已安装的 Chrome。请前往 https://www.google.com/chrome 下载并安装后再试。'
+    );
+    return;
+  }
+
   const browser = await puppeteer.launch({
     headless: false,
+    executablePath: chromePath, // 使用检测到的 Chrome 路径
+    userDataDir: './user_data',  // 指定持久化存储目录
     defaultViewport: { width: 1280, height: 1024 },
   });
 
+
   for (const account of accounts) {
-    const page = await browser.newPage();
     try {
+      let page = await browser.newPage();
+      // await page.goto('https://ug.alibaba.com/', { waitUntil: 'networkidle2' });
+      // await delay(2000)
+      // await page.waitForSelector("input[name='account']")
+      // await page.waitForSelector("input[name='password']")
+      // await page.type("input[name='account']", 'mu7vq3zh6c1@rteet.com', { delay: 100 })
+      // await page.type("input[name='password']", 'Password123', { delay: 100 })
+      // await delay(1000)
+      // await page.click("button.sif_form-submit")
+      // return;
       await navigateToRegistrationPage(page);
 
       const email = await getTempEmail();
@@ -100,6 +141,8 @@ async function handleVerification(page, email) {
       await fillRegistrationForm(page, account, email);
       await handleSlider(page);
 
+      await delay(1000)
+      await page.waitForSelector('input[name="memberAgreement"]');
       await page.click('input[name="memberAgreement"]');
       await page.click('button.RP-form-submit');
 
@@ -114,10 +157,7 @@ async function handleVerification(page, email) {
       await delay(5000)
 
       // 跳转到 ug 进行用户设置
-      const cookies = await page.cookies();
-      await page.goto('https://ug.alibaba.com/?wx_navbar_transparent=true', { waitUntil: 'domcontentloaded' });
-      await page.setCookie(...cookies);
-      await page.reload({ waitUntil: 'networkidle2' });
+      await page.goto('https://ug.alibaba.com/?wx_navbar_transparent=true', { waitUntil: 'networkidle2' });
       await delay(1000)
       await page.waitForSelector('.mb-header-wrapper .mb-header-button');
       await page.click('.mb-header-wrapper .mb-header-button');

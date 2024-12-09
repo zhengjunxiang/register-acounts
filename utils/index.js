@@ -99,7 +99,7 @@ exports.default = {
       const response = await axios.get(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
       const messages = response.data;
       if (messages.length > 0) {
-        console.log('收到的邮件:', messages);
+        console.log('收到的邮件，进行验证码获取');
         // 获取邮件内容
         try {
           const mailDetails = await axios.get(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${messages[0].id}`);
