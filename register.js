@@ -1,5 +1,7 @@
+// const puppeteer = require('puppeteer-extra');
 const puppeteer = require('puppeteer-extra');
 const stealthPlugin = require('puppeteer-extra-plugin-stealth');
+const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
 const fs = require('fs');
 const logger = require('./logger'); // 引入日志模块
 const { getTempEmail, checkEmail, getRandomNumber } = require('./utils').default;
@@ -11,6 +13,7 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
 // 启用 stealth 插件
 puppeteer.use(stealthPlugin());
+puppeteer.use(AdblockerPlugin());
 
 // 自动获取 Chrome 的路径
 async function getChromePath() {
@@ -131,33 +134,32 @@ async function handleVerification(page, email) {
   }
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: 'new',
+    ignoreHTTPSErrors: true,
     args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
+      '--window-size=1920,1024',
+      '--disable-features=IsolateOrigins,site-per-process',
+      // IsolateOrigins：默认启用该功能时，Chromium 会将不同源的内容隔离到不同的进程中。这是为了增强安全性，但有时会影响页面加载或性能。
+      // site-per-process：禁用每个站点每个进程的隔离，可能有助于性能优化。
       '--disable-blink-features=AutomationControlled', // 禁用自动化提示
       '--disable-infobars', // 禁用信息栏（提示 Chrome 正受到控制）
+      '--blink-settings=imagesEnabled=true',
+      "--no-sandbox", // 使用沙盒模式
+      "--disable-setuid-sandbox", // 禁用setuid沙盒（仅限Linux）
+      "--disable-extensions", // 禁用扩展
+      "--incognito", // 禁用GPU硬件加速
+      "--disable-gpu", // 以隐身模式运行
+      "--no-zygote", // 禁用 Zygote 进程模型，启动时不创建一个共享的子进程来提高性能。
     ],
     executablePath: chromePath, // 使用检测到的 Chrome 路径
     // userDataDir: './user_data',  // 指定持久化存储目录
-    defaultViewport: { width: 1440, height: 1024 },
+    defaultViewport: { width: 1920, height: 1024 },
   });
 
 
   for (const account of accounts) {
     try {
       let page = await browser.newPage();
-      // 通过 evaluate 来禁用 WebDriver 检测
-      // await page.evaluateOnNewDocument(() => {
-      //   // 禁用 WebDriver 属性
-      //   Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); // 防止检测到 webdriver
-      //   // 模拟浏览器的其他属性
-      //   Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-      //   Object.defineProperty(navigator, 'plugins', { get: () => ['Chrome PDF Viewer', 'Native Client'] });
-      // });
-      // const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134';
-
-      // await page.setUserAgent(userAgent);
 
       await navigateToRegistrationPage(page);
 
@@ -178,7 +180,7 @@ async function handleVerification(page, email) {
 
       // 点击注册
       await delay(1000)
-      await page.click('button.RP-modal-button');
+      await page.click('.RP-modal-item:nth-child(3) button.RP-modal-button');
       logger.info(`账号 ${email} 注册成功！`);
 
       // 等待登录完成
