@@ -1,6 +1,5 @@
 const puppeteer = require('puppeteer-extra');
 const stealthPlugin = require('puppeteer-extra-plugin-stealth');
-// const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
 const fs = require('fs');
 const logger = require('./logger'); // 引入日志模块
 const { getTempEmail, checkEmail, getRandomNumber } = require('./utils').default;
@@ -12,7 +11,6 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
 // 启用 stealth 插件
 puppeteer.use(stealthPlugin());
-// puppeteer.use(AdblockerPlugin());
 
 // 自动获取 Chrome 的路径
 async function getChromePath() {
@@ -77,7 +75,7 @@ async function handleSlider(page) {
 
     const startX = sliderBox.x + sliderBox.width / 2;
     const startY = sliderBox.y + sliderBox.height / 2;
-    const endX = containerBox.x + containerBox.width - sliderBox.width / 2;
+    const endX = containerBox.x + containerBox.width - sliderBox.width / 4;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
@@ -156,39 +154,47 @@ async function handleVerification(page, email) {
     // defaultViewport: { width: 1920, height: 1024 },
   });
 
+  // 获取所有打开的页面
+  const pages = await browser.pages();
+
+  // 如果只有一个默认空白页面，则关闭它
+  if (pages.length === 1 && pages[0].url() === 'about:blank') {
+    await pages[0].close();
+  }
+
   for (const account of accounts) {
     try {
       let page = await browser.newPage();
 
-      // await navigateToRegistrationPage(page);
+      await navigateToRegistrationPage(page);
 
-      // const email = await getTempEmail();
-      // logger.info(`使用临时邮箱注册: ${email}`);
+      const email = await getTempEmail();
+      logger.info(`使用临时邮箱注册: ${email}`);
 
-      // await delay(1000);
+      await delay(1000);
 
-      // await fillRegistrationForm(page, account, email);
-      // await handleSlider(page);
+      await fillRegistrationForm(page, account, email);
+      await handleSlider(page);
 
-      // await page.waitForSelector('input[name="memberAgreement"]');
-      // await page.click('input[name="memberAgreement"]');
-      // await delay(1000)
-      // await page.click('button.RP-form-submit');
+      await page.waitForSelector('input[name="memberAgreement"]');
+      await page.click('input[name="memberAgreement"]');
+      await delay(1000)
+      await page.click('button.RP-form-submit');
 
-      // await handleVerification(page, email);
+      await handleVerification(page, email);
 
-      // // 点击注册
-      // await delay(1000)
-      // await page.click('.RP-modal-item:nth-child(3) button.RP-modal-button');
-      // logger.info(`账号 ${email} 注册成功！`);
+      // 点击注册
+      await delay(1000)
+      await page.click('.RP-modal-item:nth-child(3) button.RP-modal-button');
+      logger.info(`账号 ${email} 注册成功！`);
 
-      // // 等待登录完成
-      // await page.waitForSelector('.tnh-loggedin .tnh-ma');
-      // await delay(3000)
+      // 等待登录完成
+      await page.waitForSelector('.tnh-loggedin .tnh-ma');
+      await delay(3000)
       // 跳转到 ug 进行用户设置
       await page.goto('https://ug.alibaba.com/?wx_navbar_transparent=true', { waitUntil: ['domcontentloaded', 'networkidle0'] });
-      // logger.info(`账号 ${email} 进行登录！`);
-      const email = 'nvn7oue4b4@rteet.com'
+      logger.info(`账号 ${email} 进行登录！`);
+
       // 登录操作
       await delay(1000)
       await page.waitForSelector("input[name='account']")
@@ -199,46 +205,42 @@ async function handleVerification(page, email) {
       await page.click("button.sif_form-submit")
       await delay(3000)
 
-      // 等待滑块展示
-      // 等待并获取 iframe 的句柄
+      // 等待并获取 iframe 展示
       await page.waitForSelector("iframe#baxia-dialog-content")
-      const iframeElementHandle = await page.$('iframe#baxia-dialog-content');
-      console.log('iframeElementHandle', iframeElementHandle)
-      await iframeElementHandle.waitForSelector('#nocaptcha');
+      function getFrime() {
+        return page.frames().find(frame => {
+          return frame.url().includes('https://login.alibaba.com//newlogin/login.do')
+        });
+      }
+      let frame = getFrime()
+      let count = 0
+      while (!frame && count < 10) {
+        count++
+        await delay(600)
+        frame = getFrime()
+      }
+      await delay(2000)
+      // 等待滑块展示
+      await frame.waitForSelector('.nc_scale .btn_slide')
 
+      await delay(2000)
 
-      // 获取 iframe 的 contentFrame（即 iframe 的文档上下文）
-      const iframe = iframeElementHandle.contentFrame();
-      console.log('iframe', iframe)
+      const sliderHandle = await frame.$('.nc_scale .btn_slide');
+      const sliderContainer = await frame.$('.nc_scale');
 
-      const textInIframe = await iframe.evaluate(() => {
-        return document.querySelector('.nc-lang-cnt').textContent;
-      });
+      const sliderBox = await sliderHandle.boundingBox();
+      const containerBox = await sliderContainer.boundingBox();
 
-      console.log('textInIframe', textInIframe)
+      const startX = sliderBox.x + sliderBox.width / 2;
+      const startY = sliderBox.y + sliderBox.height / 2;
+      const endX = containerBox.x + containerBox.width - sliderBox.width / 4;
 
-      const iframeContent = await iframeElementHandle.contentFrame().evaluate(() => {
-        return document.body.innerHTML;
-      });
-      console.log('iframeContent', iframeContent)
-
-      // 等待滑块组件加载完成，可以通过检查滑块是否可见
-      await iframe.waitForSelector('#nocaptcha .nc-lang-cnt', { visible: true });
-
-      // 执行滑块拖动操作（假设滑块元素是可见且可拖动的）
-      const sliderHandle = await iframe.$('.nc_scale .btn_slide');
-      console.log('sliderHandle', sliderHandle)
-      const box = await sliderHandle.boundingBox();
-      console.log('box', box)
-      // 计算拖动的目标位置（例如目标是滑块右侧的某个位置）
-      const targetX = box.x + box.width;
-      const targetY = box.y + box.height / 2;
-      // 拖动滑块
-      await iframe.mouse.move(box.x, box.y);
-      await iframe.mouse.down();
-      await iframe.mouse.move(targetX, targetY, { steps: getRandomNumber(20, 30) });
+      await page.mouse.move(startX, startY, { steps: getRandomNumber(50, 100) });
+      await page.mouse.down();
       await delay(getRandomNumber(300, 600))
-      await iframe.mouse.up();
+      await page.mouse.move(endX, startY, { steps: getRandomNumber(50, 100) });
+      await delay(getRandomNumber(600, 1000))
+      await page.mouse.up();
       await delay(2000)
 
       // 登录完成
@@ -246,20 +248,60 @@ async function handleVerification(page, email) {
       await page.waitForSelector('.mb-header-wrapper .mb-header-button');
       await page.click('.mb-header-wrapper .mb-header-button');
 
-      // 还有个 iframe
-      await page.waitForSelector('.upgradeToDialog .member-index-main .business-identify-group');
-      await page.click('.business-identify-group .business-identify-type:last-child');
-      await delay(600)
-      await page.click('.upgradeToDialog .layout-footer .footer-button');
-      await delay(500)
+      // 等待并获取 iframe 展示
+      await page.waitForSelector(".mb-dialog-content")
+      await delay(3000)
+      function getFrime1() {
+        return page.frames().find(frame => {
+          return frame.url().includes('https://air.alibaba.com/app')
+        });
+      }
+      let frame1 = getFrime1()
+      let count1 = 0
+      while (!frame && count < 10) {
+        count1++
+        await delay(600)
+        frame1 = getFrime1()
+      }
+      await delay(2000)
+      // 等待滑块展示
+      await frame1.waitForSelector('#upgradeToDialog .business-identify-group .business-identify-type .type-item-chose')
 
-      // 下一步
-      await page.type('input#street', 'sfdsdf', { delay: 100 });
-      await page.type('input#province', 'sfdsdf', { delay: 100 });
-      await page.type('input#city', 'sfdsdf', { delay: 100 });
-      await page.waitForSelector('.upgradeToDialog .clause-box .fold-box .fold-box-checkbox');
+      // 进行第一步选择
+      await delay(2000)
+      const businessTypeSelector = '.business-identify-group .business-identify-type .type-item-title'
+
+      // 查找匹配文本为 "other" 的元素
+      const targetElementHandle = await frame1.evaluateHandle((selector, text) => {
+        const elements = Array.from(document.querySelectorAll(selector));
+        return elements.find((el) => el.textContent.trim() === text);
+      }, businessTypeSelector, 'Other');
+
+      const businessTypeBox = await targetElementHandle.boundingBox();
+
+      const startX1 = businessTypeBox.x + businessTypeBox.width / 2;
+      const startY1 = businessTypeBox.y + businessTypeBox.height / 2;
+      await page.mouse.move(startX1, startY1, { steps: getRandomNumber(50, 100) });
+      await page.mouse.down()
+      await delay(300)
+      await page.mouse.up()
+      await delay(1000)
+      await frame1.click('#upgradeToDialog .layout-footer .footer-button');
+
+      // 进行第二步选择
+      await delay(2000)
+      await frame1.waitForSelector('input#street');
+      await frame1.type('input#street', 'New York', { delay: 100 });
+      await delay(600)
+      await frame1.click('input#street');
+      await delay(2000)
+      await frame1.waitForSelector('.next-overlay-wrapper .next-menu-item:first-child');
+      await frame1.click('.next-overlay-wrapper .next-menu-item:first-child');
+
       await delay(500)
-      await page.click('.upgradeToDialog .layout-footer .footer-button');
+      await frame1.click('#upgradeToDialog .clause-box .fold-box .fold-box-checkbox');
+      await delay(600)
+      await frame1.click('#upgradeToDialog .layout-footer .footer-button');
     } catch (err) {
       logger.error(`账号注册失败: ${err.message}`);
     } finally {
