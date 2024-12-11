@@ -4,6 +4,7 @@ const cheerio = require('cheerio');
 
 // https://sms-activate.guru/en/api2
 exports.default = {
+  delay: (time) => new Promise(resolve => setTimeout(resolve, time)),
   async selectDropdownOptionByIndex(page, triggerSelector, optionIndex) {
     // 点击下拉框触发器
     await page.click(triggerSelector);
@@ -85,7 +86,6 @@ exports.default = {
   async getTempEmail() {
     const response = await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1');
     const email = response.data[0];
-    console.log('临时邮箱:', email);
     return email;
   },
 
@@ -119,5 +119,21 @@ exports.default = {
     }
 
     throw new Error('获取邮箱验证码超时');
+  },
+
+  // 自动获取 Chrome 的路径
+  async getChromePath() {
+    try {
+      const { Launcher } = await import('chrome-launcher');
+      const installation = await Launcher.getInstallations();
+      if (installation && installation.length > 0) {
+        // logger.info(`检测到 Chrome 安装路径: ${installation[0]}`);
+        return installation[0];
+      }
+      throw new Error('未找到 Chrome 安装');
+    } catch (err) {
+      logger.error('检测 Chrome 安装路径失败: ' + err.message);
+      return null;
+    }
   }
 }
