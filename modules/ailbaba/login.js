@@ -31,7 +31,7 @@ exports.default = {
       await delay(3000);
     } catch (err) {
       logger.error("填写注册表单失败: " + err.message);
-      throw err;
+      throw new Error(err.message);
     }
   },
 
@@ -63,22 +63,20 @@ exports.default = {
         await frame.waitForSelector(".nc_scale .btn_slide");
         await delay(600)
 
-        const sliderHandle = await frame.$(".nc_scale .btn_slide");
         const sliderContainer = await frame.$(".nc_scale");
+        const sliderHandle = await frame.$(".nc_scale .btn_slide");
 
-        const sliderBox = await sliderHandle.boundingBox();
-        const containerBox = await sliderContainer.boundingBox();
+        const silderContainerBox = await sliderContainer.boundingBox();
+        const sliderHadnleBox = await sliderHandle.boundingBox();
 
-        if (!sliderBox || !containerBox) {
-          throw new Error(
-            "Failed to retrieve bounding boxes for slider elements"
-          );
+        if (!sliderHadnleBox || !silderContainerBox) {
+          throw new Error("Failed to retrieve bounding boxes for slider elements");
         }
 
         console.log("Slider elements located, starting drag operation...");
-        const startX = sliderBox.x + sliderBox.width / 4;
-        const startY = sliderBox.y + sliderBox.height / 3;
-        const endX = containerBox.x + containerBox.width + sliderBox.width * 2;
+        const startX = sliderHadnleBox.x + sliderHadnleBox.width / 4;
+        const startY = sliderHadnleBox.y + sliderHadnleBox.height / 3;
+        const endX = silderContainerBox.x + silderContainerBox.width + sliderHadnleBox.width * 2;
 
         // 模拟拖动滑块
         await page.mouse.move(startX, startY);
@@ -121,8 +119,13 @@ exports.default = {
           console.log(
             `Starting slider verification attempt #${retryCount + 1}`
           );
+          // 判断页面是否还在登录页
+          let isHasAccountInp1 = await page.$("input[name='account']");
+          if (!isHasAccountInp1) return true
           await runSlider();
           await delay(600)
+          let isHasAccountInp2 = await page.$("input[name='account']");
+          if (!isHasAccountInp2) return true
           const result = await checkSliderResult();
           if (result === "success") {
             console.log("Slider verification succeeded!");

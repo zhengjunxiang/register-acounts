@@ -49,35 +49,33 @@ puppeteer.use(stealthPlugin());
     try {
       const page = await browser.newPage();
 
-      // await navigateToRegistrationPage(page);
+      await navigateToRegistrationPage(page);
 
-      // const { email, token } = await createTMTempEmail();
-      // logger.info(`使用临时邮箱注册: ${email}`);
-      // logger.info(`token: ${token}`);
+      const { email, token } = await createTMTempEmail();
+      logger.info(`使用临时邮箱注册: ${email}`);
+      logger.info(`token: ${token}`);
 
-      // await fillRegistrationForm(page, account, email);
-      // await handleRegistrationSlider(page);
-      // await handleSubmit(page);
+      await fillRegistrationForm(page, account, email);
+      await handleRegistrationSlider(page);
+      await handleSubmit(page);
       // 点击注册
-      // await handleVerificationAndRegister(page, token);
+      await handleVerificationAndRegister(page, token);
 
       // 等待登录完成
-      // await page.waitForSelector('.tnh-loggedin .tnh-ma');
-      // logger.info(`账号 ${email} 注册成功！`);
-      // await delay(3000);
+      await page.waitForSelector('.tnh-loggedin .tnh-ma');
+      logger.info(`账号 ${email} 注册成功！`);
+      await delay(3000);
 
       // 跳转到 ug 进行用户设置
       await navigateToLoginPage(page);
-      const email = 'n7xoheeyr5o3@freesourcecodes.com'
+      // const email = 'n7xoheeyr5o3@freesourcecodes.com'
       // 填写登录表单
       await fillLoginForm(page, account, email);
 
       await handleLoginSlider(page);
 
       // 登录完成 -> 点击 Unlock your stage
-      logger.info('开始执行 handleUnlockStage');
       await handleUnlockStage(page);
-      logger.info('完成 handleUnlockStage');
     } catch (err) {
       logger.error(`账号注册失败: ${err.message}`);
     }
