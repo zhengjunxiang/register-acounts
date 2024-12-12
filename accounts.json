@@ -8,5 +8,15 @@
     "phoneAreaCode": "86",
     "address": "Jian She Lu",
     "phoneNumber": "1881998765"
+  },
+  {
+    "country": "United States of America",
+    "password": "Password123",
+    "company": "So good",
+    "firstName": "lemd",
+    "lastName": "wadeD",
+    "phoneAreaCode": "66",
+    "address": "Ren Ming Lu",
+    "phoneNumber": "1881998765"
   }
 ]

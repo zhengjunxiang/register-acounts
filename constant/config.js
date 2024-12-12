@@ -14,8 +14,7 @@ exports.default = {
       "--no-sandbox", // 使用沙盒模式
       "--disable-setuid-sandbox", // 禁用setuid沙盒（仅限Linux）
       "--disable-extensions", // 禁用扩展
-      // "--incognito", // 启用无痕模式，减少浏览器状态干扰。
-      '--no-first-run', // 避免首次运行时打开欢迎页面或空白页
+      "--incognito", // 启用无痕模式，减少浏览器状态干扰。
       // "--disable-gpu", // 禁用 GPU 加速（主要用于无头模式）。
       "--no-zygote", // 禁用 Zygote 进程模型，启动时不创建一个共享的子进程来提高性能。
     ],

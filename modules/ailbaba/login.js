@@ -76,25 +76,14 @@ exports.default = {
         console.log("Slider elements located, starting drag operation...");
         const startX = sliderHadnleBox.x + sliderHadnleBox.width / getRandomNumber(2,4);
         const startY = sliderHadnleBox.y + sliderHadnleBox.height / getRandomNumber(2,4);
-        const endX = sliderHadnleBox.x + sliderHadnleBox.width + sliderHadnleBox.width * getRandomNumber(1,3);
-
-        // {
-        //   "country": "United States of America",
-        //   "password": "Password123",
-        //   "company": "So good",
-        //   "firstName": "lemd",
-        //   "lastName": "wadeD",
-        //   "phoneAreaCode": "66",
-        //   "address": "Ren Ming Lu",
-        //   "phoneNumber": "1881998765"
-        // }
+        const endX = sliderHadnleBox.x + silderContainerBox.width + sliderHadnleBox.width * getRandomNumber(1,3);
 
         // 模拟拖动滑块
         await page.mouse.move(startX, startY);
         await delay(getRandomNumber(300, 600));
         await page.mouse.down();
         await delay(getRandomNumber(300, 600));
-        await page.mouse.move(endX, startY, { steps: getRandomNumber(5, 10) }); // 多步拖动模拟人为操作
+        await page.mouse.move(endX, startY, { steps: getRandomNumber(10, 20) }); // 多步拖动模拟人为操作
         await delay(getRandomNumber(300, 600));
         await page.mouse.up();
 
@@ -224,7 +213,6 @@ exports.default = {
     await frame.click(
       "#upgradeToDialog .clause-box .fold-box .fold-box-checkbox"
     );
-    throw new Error("不明异常: " + 'kkkk');
     await delay(600);
     await frame.click("#upgradeToDialog .layout-footer .footer-button");
   },
