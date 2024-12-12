@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任务控制台</title>
+</head>
+<body>
+  <h1>批量注册与登录工具</h1>
+
+  <label for="concurrency">并发数:</label>
+  <input type="number" id="concurrency" value="4" min="1" />
+
+  <button id="start-task">开始任务</button>
+
+  <div id="log" style="margin-top: 20px;"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    // 开始任务按钮事件
+    document.getElementById('start-task').addEventListener('click', () => {
+      const maxConcurrency = parseInt(document.getElementById('concurrency').value, 10);
+      console.log('--maxConcurrency', maxConcurrency)
+      ipcRenderer.send('start-tasks', { maxConcurrency });
+    });
+
+    // 接收日志信息
+    ipcRenderer.on('task-log', (event, message) => {
+      const logDiv = document.getElementById('log');
+      const p = document.createElement('p');
+      p.textContent = message;
+      logDiv.appendChild(p);
+    });
+
+    // 接收任务完成信息
+    ipcRenderer.on('task-complete', (event, message) => {
+      alert(message);
+    });
+
+    // 接收任务错误信息
+    ipcRenderer.on('task-error', (event, message) => {
+      alert(message);
+    });
+  </script>
+</body>
+</html>
