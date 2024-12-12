@@ -53,7 +53,6 @@ puppeteer.use(stealthPlugin());
 
       const { email, token } = await createTMTempEmail();
       logger.info(`使用临时邮箱注册: ${email}`);
-      logger.info(`token: ${token}`);
 
       await fillRegistrationForm(page, account, email);
       await handleRegistrationSlider(page);
@@ -78,6 +77,7 @@ puppeteer.use(stealthPlugin());
       await handleUnlockStage(page);
     } catch (err) {
       logger.error(`账号注册失败: ${err.message}`);
+      throw new Error(`账号注册失败: ${err.message}`);
     }
   });
 
@@ -86,10 +86,18 @@ puppeteer.use(stealthPlugin());
 
   // 处理每个任务的结果
   results.forEach((result, index) => {
+    console.log('-- result', result)
     if (result.status === 'fulfilled') {
-      logger.info(`账号 ${accounts[index].firstName} 注册和登录成功！`);
+      const taskResult = result.value;
+      if (taskResult.error) {
+        // 捕获任务本身的异常
+        logger.error(`账号 ${accounts[index].firstName} 任务失败: ${taskResult.error.message}`);
+      } else {
+        // 成功任务
+        logger.info(`账号 ${accounts[index].firstName} 注册和登录成功！`);
+      }
     } else {
-      logger.error(`账号 ${accounts[index].firstName} 任务失败: ${result.reason}`);
+      logger.error(`账号 ${accounts[index].firstName} 未知异常: ${result.reason}`);
     }
   });
 

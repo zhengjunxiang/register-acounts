@@ -74,16 +74,27 @@ exports.default = {
         }
 
         console.log("Slider elements located, starting drag operation...");
-        const startX = sliderHadnleBox.x + sliderHadnleBox.width / 4;
-        const startY = sliderHadnleBox.y + sliderHadnleBox.height / 3;
-        const endX = silderContainerBox.x + silderContainerBox.width + sliderHadnleBox.width * 2;
+        const startX = sliderHadnleBox.x + sliderHadnleBox.width / getRandomNumber(2,4);
+        const startY = sliderHadnleBox.y + sliderHadnleBox.height / getRandomNumber(2,4);
+        const endX = sliderHadnleBox.x + sliderHadnleBox.width + sliderHadnleBox.width * getRandomNumber(1,3);
+
+        // {
+        //   "country": "United States of America",
+        //   "password": "Password123",
+        //   "company": "So good",
+        //   "firstName": "lemd",
+        //   "lastName": "wadeD",
+        //   "phoneAreaCode": "66",
+        //   "address": "Ren Ming Lu",
+        //   "phoneNumber": "1881998765"
+        // }
 
         // 模拟拖动滑块
         await page.mouse.move(startX, startY);
         await delay(getRandomNumber(300, 600));
         await page.mouse.down();
         await delay(getRandomNumber(300, 600));
-        await page.mouse.move(endX, startY, { steps: getRandomNumber(3, 5) }); // 多步拖动模拟人为操作
+        await page.mouse.move(endX, startY, { steps: getRandomNumber(5, 10) }); // 多步拖动模拟人为操作
         await delay(getRandomNumber(300, 600));
         await page.mouse.up();
 
@@ -102,11 +113,9 @@ exports.default = {
           const okWrapper = await frame.$(".nc_wrapper .btn_ok");
 
           if (errWrapper) {
-            console.log("Slider failed, retrying...");
             return "fail";
           }
           if (okWrapper) {
-            console.log("Slider succeeded!");
             return "success";
           }
         }
@@ -115,40 +124,33 @@ exports.default = {
 
       // 循环尝试滑块验证
       for (let retryCount = 0; retryCount < 10; retryCount++) {
-        try {
-          console.log(
-            `Starting slider verification attempt #${retryCount + 1}`
-          );
-          // 判断页面是否还在登录页
-          let isHasAccountInp1 = await page.$("input[name='account']");
-          if (!isHasAccountInp1) return true
-          await runSlider();
+        logger.info(
+          `Starting slider verification attempt #${retryCount + 1}`
+        );
+        // 判断页面是否还在登录页
+        let isHasAccountInp1 = await page.$("input[name='account']");
+        if (!isHasAccountInp1) return true
+        await runSlider();
+        await delay(600)
+        let isHasAccountInp2 = await page.$("input[name='account']");
+        if (!isHasAccountInp2) return true
+        const result = await checkSliderResult();
+        if (result === "success") {
+          return true;
+        } else if (result === "fail") {
+          const frame = await getSliderFrame();
+          await frame.click(".nc_wrapper .errloading"); // 点击重新加载
           await delay(600)
-          let isHasAccountInp2 = await page.$("input[name='account']");
-          if (!isHasAccountInp2) return true
-          const result = await checkSliderResult();
-          if (result === "success") {
-            console.log("Slider verification succeeded!");
-            return true;
-          } else if (result === "fail") {
-            console.warn("Slider verification failed, retrying...");
-            const frame = await getSliderFrame();
-            await frame.click(".nc_wrapper .errloading"); // 点击重新加载
-            await delay(600)
-          } else if (result === "timeout") {
-            console.error("Slider verification timed out");
-            throw new Error("Slider verification timed out");
-          }
-        } catch (error) {
-          console.error(`Attempt #${retryCount + 1} failed: ${error.message}`);
-          if (retryCount === 9) {
-            throw new Error("Slider verification failed after maximum retries");
-          }
+        } else if (result === "timeout") {
+          throw new Error("Slider verification timed out");
+        }
+        if (retryCount >= 9) {
+          throw new Error("Slider verification failed after maximum retries");
         }
       }
     } catch (err) {
-      console.error("登录滑块验证失败: " + err.message);
-      throw err;
+      logger.error("登录滑块验证失败: " + err.message);
+      throw new Error("登录滑块验证失败: " + err.message);
     }
   },
 
@@ -222,6 +224,7 @@ exports.default = {
     await frame.click(
       "#upgradeToDialog .clause-box .fold-box .fold-box-checkbox"
     );
+    throw new Error("不明异常: " + 'kkkk');
     await delay(600);
     await frame.click("#upgradeToDialog .layout-footer .footer-button");
   },
