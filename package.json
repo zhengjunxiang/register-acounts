@@ -13,6 +13,7 @@
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "chrome-launcher": "^1.1.2",
+    "nanoid": "^5.0.9",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "winston": "^3.17.0"
