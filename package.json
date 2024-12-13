@@ -4,10 +4,12 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "prebuild": "npm run clean",
     "build": "webpack --config webpack.config.js",
     "start": "electron .",
     "dist": "npm run build && electron-builder",
-    "start:dev": "npm run build && electron ."
+    "start:dev": "npm run build && electron .",
+    "clean": "rimraf dist"
   },
   "build": {
     "appId": "com.example.registrationtool",
@@ -15,7 +17,9 @@
     "compression": "maximum",
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "assets/**/*",
+      "public/**/*"
     ],
     "directories": {
       "output": "release"
@@ -43,9 +47,11 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.0",
     "babel-loader": "^9.2.1",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
+    "rimraf": "^6.0.1",
     "terser-webpack-plugin": "^5.3.10",
     "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4",
