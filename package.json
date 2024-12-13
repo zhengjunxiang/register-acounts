@@ -4,15 +4,22 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "build": "webpack --config webpack.config.js",
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dist": "npm run build && electron-builder",
+    "start:dev": "npm run build && electron ."
   },
   "build": {
     "appId": "com.example.registrationtool",
     "productName": "批量注册工具",
+    "compression": "maximum",
     "files": [
-      "**/*"
+      "dist/**/*",
+      "package.json"
     ],
+    "directories": {
+      "output": "release"
+    },
     "win": {
       "target": "nsis"
     },
@@ -36,7 +43,12 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "babel-loader": "^9.2.1",
     "electron": "^33.2.1",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "terser-webpack-plugin": "^5.3.10",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
   }
 }
