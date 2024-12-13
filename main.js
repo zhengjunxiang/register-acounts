@@ -32,31 +32,43 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 960,
     webPreferences: {
-      nodeIntegration: false,  // 禁用 Node.js 集成
-      contextIsolation: true,  // 启用上下文隔离
-      preload: path.join(__dirname, 'preload.js') // 可选：用于主进程和渲染进程的通信
+      contextIsolation: true, // 启用上下文隔离（推荐开启）
+      nodeIntegration: false, // 禁用 Node.js 集成
+      preload: path.join(__dirname, 'preload.js'), // 可选：用于主进程和渲染进程的通信
     }
   });
 
   mainWindow.loadFile('index.html');
+
+  // Open the DevTools.
+  // mainWindow.webContents.openDevTools()
 }
 
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+// Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  createWindow();
+  createWindow()
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
+  app.on('activate', function () {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit()
+})
+
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and require them here.
 
 // 启动任务
 ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
@@ -78,11 +90,9 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
     Math.max(2, Math.floor(os.cpus().length / 2))
   )
 
-  logger.info(`最大并发数设置为: ${currentMaxConcurrency}`);
   const limit = pLimit(currentMaxConcurrency); // 设置并发数限制
 
   const accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf-8'));
-
 
   // 处理每个账号的注册和登录
   const tasks = accounts.map(async (account) => {
@@ -118,7 +128,7 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
         // 登录完成 -> 点击 Unlock your stage
         await handleUnlockStage(page);
 
-        // await browser.close();
+        await browser.close();
 
         mainWindow.webContents.send('task-log', `账号 ${email} 注册并登录成功`);
       } catch (err) {
@@ -136,7 +146,7 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       const taskResult = result.value;
-      if (taskResult.error) {
+      if (taskResult && taskResult.error) {
         // 捕获任务本身的异常
         logger.error(`账号 ${accounts[index].firstName} 任务失败: ${taskResult.error.message}`);
       } else {

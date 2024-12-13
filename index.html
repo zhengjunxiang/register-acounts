@@ -3,42 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 添加 Content Security Policy -->
+  <!-- <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"> -->
   <title>任务控制台</title>
 </head>
 <body>
   <h1>批量注册与登录工具</h1>
 
-  <label for="concurrency">并发数:</label>
-  <input type="number" id="concurrency" value="4" min="1" />
+  <div style="margin-bottom: 12px;">
+    系统参数： Node.js <span id="node-version"></span>,
+    Chromium <span id="chrome-version"></span>,
+    and Electron <span id="electron-version"></span>.
+  </div>
+
+  <label for="concurrency">系统核数:</label>
+  <input type="number" id="concurrency" value="4" min="1" readonly />
 
   <button id="start-task">开始任务</button>
 
   <div id="log" style="margin-top: 20px;"></div>
 
   <script>
-    const { ipcRenderer } = require('electron');
-    // 开始任务按钮事件
+    // 使用安全暴露的 Electron API
     document.getElementById('start-task').addEventListener('click', () => {
       const maxConcurrency = parseInt(document.getElementById('concurrency').value, 10);
-      console.log('--maxConcurrency', maxConcurrency)
-      ipcRenderer.send('start-tasks', { maxConcurrency });
+      window.electronAPI.send('start-tasks', { maxConcurrency });
     });
 
-    // 接收日志信息
-    ipcRenderer.on('task-log', (event, message) => {
+    // 监听任务日志
+    window.electronAPI.on('task-log', (message) => {
       const logDiv = document.getElementById('log');
       const p = document.createElement('p');
       p.textContent = message;
       logDiv.appendChild(p);
     });
 
-    // 接收任务完成信息
-    ipcRenderer.on('task-complete', (event, message) => {
-      alert(message);
-    });
-
-    // 接收任务错误信息
-    ipcRenderer.on('task-error', (event, message) => {
+    // 监听任务完成
+    window.electronAPI.on('task-complete', (message) => {
       alert(message);
     });
   </script>
