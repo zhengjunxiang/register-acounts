@@ -2,10 +2,11 @@ const puppeteer = require('puppeteer-extra');
 const stealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const os = require('os'); // 用于检测系统资源
+const path = require('path')
 
 const { launchConfig } = require('../constant/config').default
 const logger = require('../utils/logger'); // 引入日志模块
-const { getChromePath, delay } = require('../utils').default;
+const { getChromePath, delay, generateUserAgent } = require('../utils').default;
 const { createTMTempEmail } = require('../utils/email').default;
 
 const {
@@ -23,7 +24,7 @@ const {
   handleUnlockStage,
 } = require('../modules/ailbaba/login').default;
 
-const accounts = JSON.parse(fs.readFileSync('../accounts.json', 'utf-8'));
+const accounts = JSON.parse(fs.readFileSync(path.join(__dirname, '../accounts.json'), 'utf-8'));
 
 // 启用 stealth 插件
 puppeteer.use(stealthPlugin());
@@ -43,9 +44,7 @@ puppeteer.use(stealthPlugin());
    ? parseInt(process.env.MAX_CONCURRENCY, 10) // 优先使用环境变量设置
    : Math.min(4, Math.max(2, Math.floor(os.cpus().length / 2))); // 动态计算默认并发数
 
-  logger.info(`最大并发数设置为: ${maxConcurrency}`);
   const limit = pLimit(maxConcurrency); // 设置并发数限制
-
 
   // 处理每个账号的注册和登录
   const tasks = accounts.map(async (account) => {
@@ -54,6 +53,8 @@ puppeteer.use(stealthPlugin());
         const browser = await puppeteer.launch(launchConfig(chromePath));
         const pages = await browser.pages();
         const page = pages[0]
+
+        await page.setUserAgent(generateUserAgent());
 
         await navigateToRegistrationPage(page);
 
@@ -93,10 +94,9 @@ puppeteer.use(stealthPlugin());
   // 处理每个任务的结果
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
-      const taskResult = result.value;
-      if (taskResult.error) {
+      if (result.error) {
         // 捕获任务本身的异常
-        logger.error(`账号 ${accounts[index].firstName} 任务失败: ${taskResult.error.message}`);
+        logger.error(`账号 ${accounts[index].firstName} 任务失败: ${result.error.message}`);
       } else {
         // 成功任务
         logger.info(`账号 ${accounts[index].firstName} 注册和登录成功！`);
@@ -107,5 +107,5 @@ puppeteer.use(stealthPlugin());
   });
 
   logger.info('所有任务完成');
-  // await browser.close();
+  await browser.close();
 })();

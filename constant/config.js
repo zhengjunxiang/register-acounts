@@ -4,7 +4,7 @@ exports.default = {
     ignoreHTTPSErrors: true,
     args: [
       '--window-size=1440,1024',
-      '--enable-automation', // 取消自动打开的空白页
+      // '--enable-automation', // 取消自动打开的空白页
       '--disable-features=IsolateOrigins,site-per-process',
       // IsolateOrigins：默认启用该功能时，Chromium 会将不同源的内容隔离到不同的进程中。这是为了增强安全性，但有时会影响页面加载或性能。
       // site-per-process：禁用每个站点每个进程的隔离，可能有助于性能优化。

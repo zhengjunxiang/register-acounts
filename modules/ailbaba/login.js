@@ -58,7 +58,6 @@ exports.default = {
       // 滑动验证
       const runSlider = async () => {
         const frame = await getSliderFrame();
-        console.log("Slider frame found, waiting for slider elements...");
         await delay(600)
         await frame.waitForSelector(".nc_scale .btn_slide");
         await delay(600)
@@ -73,21 +72,19 @@ exports.default = {
           throw new Error("Failed to retrieve bounding boxes for slider elements");
         }
 
-        console.log("Slider elements located, starting drag operation...");
         const startX = sliderHadnleBox.x + sliderHadnleBox.width / getRandomNumber(2,4);
         const startY = sliderHadnleBox.y + sliderHadnleBox.height / getRandomNumber(2,4);
-        const endX = sliderHadnleBox.x + silderContainerBox.width + sliderHadnleBox.width * getRandomNumber(1,3);
+        const endX = sliderHadnleBox.x + silderContainerBox.width + sliderHadnleBox.width * getRandomNumber(0,2);
 
         // 模拟拖动滑块
         await page.mouse.move(startX, startY);
-        await delay(getRandomNumber(300, 600));
+        await delay(getRandomNumber(200, 300));
         await page.mouse.down();
-        await delay(getRandomNumber(300, 600));
-        await page.mouse.move(endX, startY, { steps: getRandomNumber(10, 20) }); // 多步拖动模拟人为操作
+        await delay(getRandomNumber(200, 300));
+        await page.mouse.move(endX, startY, { steps: getRandomNumber(2,3) }); // 多步拖动模拟人为操作
         await delay(getRandomNumber(300, 600));
         await page.mouse.up();
 
-        console.log("Drag operation completed, waiting for result...");
         await delay(2000); // 等待验证结果加载
       };
 

@@ -1,6 +1,5 @@
 // 获取解码平台手机号
 const axios = require('axios');
-const cheerio = require('cheerio');
 
 // https://sms-activate.guru/en/api2
 exports.default = {
@@ -31,6 +30,24 @@ exports.default = {
   },
   getRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+  },
+  generateUserAgent() {
+    const browsers = ['Chrome', 'Firefox', 'Edge'];
+    const os = ['Windows NT 10.0; Win64; x64', 'Macintosh; Intel Mac OS X 10_15_7', 'X11; Linux x86_64'];
+
+    const browser = browsers[Math.floor(Math.random() * browsers.length)];
+    const operatingSystem = os[Math.floor(Math.random() * os.length)];
+    let browserVersion;
+
+    if (browser === 'Chrome') {
+      browserVersion = `${Math.floor(Math.random() * 10) + 114}.0.0.0`;
+    } else if (browser === 'Firefox') {
+      browserVersion = `${Math.floor(Math.random() * 10) + 90}.0`;
+    } else if (browser === 'Edge') {
+      browserVersion = `Edg/${Math.floor(Math.random() * 10) + 114}.0.0.0`;
+    }
+
+    return `Mozilla/5.0 (${operatingSystem}) AppleWebKit/537.36 (KHTML, like Gecko) ${browser}/${browserVersion} Safari/537.36`;
   },
   // 获取电话号码
   async getPhoneNumber(apiKey, country, service) {
