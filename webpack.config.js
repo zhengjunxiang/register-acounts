@@ -14,11 +14,11 @@ module.exports = {
     __dirname: false,
     __filename: false,
   },
-  externals: [
-    nodeExternals({
-      allowlist: ['puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth'] // 保留这些库
-    })
-  ],
+  // externals: [
+  //   nodeExternals({
+  //     allowlist: ['puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth'] // 保留这些库
+  //   })
+  // ],
   resolve: {
     alias: {
       puppeteer: require.resolve('puppeteer-core'),

@@ -2,7 +2,7 @@
   "name": "register-accounts",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
     "prebuild": "npm run clean",
     "build": "webpack --config webpack.config.js",
