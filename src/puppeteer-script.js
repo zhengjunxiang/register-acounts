@@ -19,6 +19,7 @@ const {
 
 const {
   navigateToLoginPage,
+  checkInLoginPage,
   fillLoginForm,
   handleLoginSlider,
   handleUnlockStage,
@@ -59,7 +60,6 @@ puppeteer.use(stealthPlugin());
         await navigateToRegistrationPage(page);
 
         const { email, token } = await createTMTempEmail();
-        logger.info(`使用临时邮箱注册: ${email}`);
 
         await fillRegistrationForm(page, account, email);
         await handleRegistrationSlider(page);
@@ -74,13 +74,20 @@ puppeteer.use(stealthPlugin());
 
         // 跳转到 ug 进行用户设置
         await navigateToLoginPage(page);
-        // 填写登录表单
-        await fillLoginForm(page, account, email);
 
-        await handleLoginSlider(page);
+        const isInLoginPage = await checkInLoginPage(page)
+
+        if (isInLoginPage) {
+          // 填写登录表单
+          await fillLoginForm(page, account, email);
+          // 滑动登录滑块
+          await handleLoginSlider(page);
+        }
 
         // 登录完成 -> 点击 Unlock your stage
         await handleUnlockStage(page);
+
+        await browser.close();
       } catch (err) {
         logger.error(`账号注册失败: ${err.message}`);
         throw new Error(`账号注册失败: ${err.message}`);
@@ -107,5 +114,4 @@ puppeteer.use(stealthPlugin());
   });
 
   logger.info('所有任务完成');
-  await browser.close();
 })();

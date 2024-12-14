@@ -20,6 +20,7 @@ const {
 
 const {
   navigateToLoginPage,
+  checkInLoginPage,
   fillLoginForm,
   handleLoginSlider,
   handleUnlockStage,
@@ -105,7 +106,6 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
         await navigateToRegistrationPage(page);
 
         const { email, token } = await createTMTempEmail();
-        logger.info(`使用临时邮箱注册: ${email}`);
 
         await fillRegistrationForm(page, account, email);
         await handleRegistrationSlider(page);
@@ -120,10 +120,15 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
 
         // 跳转到 ug 进行用户设置
         await navigateToLoginPage(page);
-        // 填写登录表单
-        await fillLoginForm(page, account, email);
 
-        await handleLoginSlider(page);
+        const isInLoginPage = await checkInLoginPage(page)
+
+        if (isInLoginPage) {
+          // 填写登录表单
+          await fillLoginForm(page, account, email);
+          // 滑动登录滑块
+          await handleLoginSlider(page);
+        }
 
         // 登录完成 -> 点击 Unlock your stage
         await handleUnlockStage(page);

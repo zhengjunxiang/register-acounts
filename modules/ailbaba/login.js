@@ -16,12 +16,17 @@ exports.default = {
     }
   },
 
+  // 检查是否在登录页
+  async checkInLoginPage(page) {
+    await delay(1000);
+    const accountInp = await page.$("input[name='account']");
+    return !!accountInp;
+  },
+
   // 填写登录表单
   async fillLoginForm(page, account, email) {
     try {
       await delay(1000);
-      await page.waitForSelector("input[name='account']");
-      await page.waitForSelector("input[name='password']");
       await page.type("input[name='account']", email, { delay: 100 });
       await page.type("input[name='password']", account.password, {
         delay: 100,
@@ -49,7 +54,7 @@ exports.default = {
                 .includes("https://login.alibaba.com//newlogin/login.do")
             );
           if (frame) return frame;
-          console.log(`Retrying to find slider iframe, attempt ${attempt + 1}`);
+          logger.info(`Retrying to find slider iframe, attempt ${attempt + 1}`);
           await delay(delayMs);
         }
         throw new Error("Failed to find slider iframe after maximum retries");
@@ -117,7 +122,7 @@ exports.default = {
         let isHasAccountInp1 = await page.$("input[name='account']");
         if (!isHasAccountInp1) return true
         await runSlider();
-        await delay(600)
+        await delay(1000)
         let isHasAccountInp2 = await page.$("input[name='account']");
         if (!isHasAccountInp2) return true
         const result = await checkSliderResult();

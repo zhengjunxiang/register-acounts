@@ -1,6 +1,7 @@
 // 获取解码平台手机号
 const axios = require("axios");
 const cheerio = require("cheerio");
+const logger = require('../utils/logger'); // 引入日志模块
 
 // Mail.tm API 的基础 URL
 const TM_BASE_URL = "https://api.mail.tm";
@@ -12,13 +13,13 @@ const getTMDomain = async function () {
     if (domains.length > 0) {
       const randomIndex = Math.floor(Math.random() * domains.length);
       const domain = domains[randomIndex].domain;
-      console.log("获取的域名:", domain);
+      logger.info(`获取的域名: ${domain}`);
       return domain;
     } else {
       throw new Error("未找到可用的域名。");
     }
   } catch (error) {
-    console.error("获取域名失败:", error.response?.data || error.message);
+    logger.error(`获取域名失败: ${error.response?.data || error.message}`);
     throw error;
   }
 };
@@ -88,7 +89,7 @@ exports.default = {
 
       const { id, address } = response.data;
 
-      console.log("临时邮箱创建成功:", address);
+      logger.info(`临时邮箱创建成功: ${address}`);
 
       // 登录获取 Token
       const tokenResponse = await axios.post(`${TM_BASE_URL}/token`, {
@@ -100,7 +101,7 @@ exports.default = {
 
       return { id, email: address, token };
     } catch (error) {
-      console.error("创建临时邮箱失败:", error.response?.data || error.message);
+      logger.error(`创建临时邮箱失败: ${error.response?.data || error.message}`);
     }
   },
 
@@ -108,7 +109,7 @@ exports.default = {
   async checkTMInbox(token, retryCount = 10, interval = 5000) {
     try {
       for (let attempt = 0; attempt < retryCount; attempt++) {
-        console.log(`第 ${attempt + 1} 次检查邮箱...`);
+        logger.info(`第 ${attempt + 1} 次检查邮箱...`);
 
         const response = await axios.get(`${TM_BASE_URL}/messages`, {
           headers: {
@@ -132,13 +133,13 @@ exports.default = {
 
           const verificationCode = mailResponse.data.text.match(/\d{6}/)?.[0]; // 假设验证码是6位数字
           if (verificationCode) {
-            console.log("验证码:", verificationCode);
+            logger.info(`验证码: ${verificationCode}`);
             return verificationCode;
           } else {
-            console.log("邮件中未找到验证码。");
+            logger.info("邮件中未找到验证码。");
           }
         } else {
-          console.log("当前邮箱未收到邮件。");
+          logger.info("当前邮箱未收到邮件。");
         }
 
         // 等待指定时间后重试
@@ -147,10 +148,10 @@ exports.default = {
         }
       }
 
-      console.log("超过最大重试次数，未收到邮件。");
+      logger.info("超过最大重试次数，未收到邮件。");
       return null;
     } catch (error) {
-      console.error("检查邮箱失败:", error.response?.data || error.message);
+      logger.error(`检查邮箱失败: ${error.response?.data || error.message}`);
     }
   },
 };
