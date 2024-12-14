@@ -11,7 +11,7 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(), // 输出到控制台
-    new winston.transports.File({ filename: 'logs/combined.log' }), // 输出到文件
+    // new winston.transports.File({ filename: 'logs/combined.log' }), // 输出到文件
   ],
 });
 

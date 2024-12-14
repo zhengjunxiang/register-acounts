@@ -2,16 +2,17 @@
   "name": "register-accounts",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
     "prebuild": "npm run clean",
     "build": "webpack --config webpack.config.js",
     "start": "electron .",
     "dist": "npm run build && electron-builder",
     "start:dev": "npm run build && electron .",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist release"
   },
   "build": {
+    "asar": false,
     "appId": "com.example.registrationtool",
     "productName": "批量注册工具",
     "compression": "maximum",
@@ -19,7 +20,10 @@
       "dist/**/*",
       "package.json",
       "assets/**/*",
-      "public/**/*"
+      "public/**/*",
+      "preload.js",
+      "accounts.json",
+      "index.html"
     ],
     "directories": {
       "output": "release"
@@ -49,12 +53,12 @@
   "devDependencies": {
     "@babel/preset-env": "^7.26.0",
     "babel-loader": "^9.2.1",
+    "copy-webpack-plugin": "^12.0.2",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
     "rimraf": "^6.0.1",
     "terser-webpack-plugin": "^5.3.10",
     "webpack": "^5.97.1",
-    "webpack-cli": "^5.1.4",
-    "webpack-node-externals": "^3.0.0"
+    "webpack-cli": "^5.1.4"
   }
 }

@@ -45,7 +45,7 @@ function createWindow() {
   mainWindow.loadFile('index.html');
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 }
 
 // This method will be called when Electron has finished
@@ -73,8 +73,6 @@ app.on('window-all-closed', function () {
 
 // 启动任务
 ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
-  console.log('start-tasks-maxConcurrency', maxConcurrency)
-
   const { default: pLimit } = await import('p-limit');
   const chromePath = await getChromePath();
 
@@ -90,78 +88,84 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
     parseInt(maxConcurrency, 10),
     Math.max(2, Math.floor(os.cpus().length / 2))
   )
+  mainWindow.webContents.send('task-log', `信息 ${currentMaxConcurrency}`);
 
   const limit = pLimit(currentMaxConcurrency); // 设置并发数限制
 
-  const accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf-8'));
+  try {
+    const accountsPath = path.join(__dirname, 'accounts.json'); // 获取文件的绝对路径
+    const accounts = JSON.parse(fs.readFileSync(accountsPath, 'utf-8'));
 
-  // 处理每个账号的注册和登录
-  const tasks = accounts.map(async (account) => {
-    return limit(async () => {
-      try {
-        const browser = await puppeteer.launch(launchConfig(chromePath));
-        const pages = await browser.pages();
-        const page = pages[0]
+    // 处理每个账号的注册和登录
+    const tasks = accounts.map(async (account) => {
+      return limit(async () => {
+        try {
+          const browser = await puppeteer.launch(launchConfig(chromePath));
+          const pages = await browser.pages();
+          const page = pages[0]
 
-        await navigateToRegistrationPage(page);
+          await navigateToRegistrationPage(page);
 
-        const { email, token } = await createTMTempEmail();
+          const { email, token } = await createTMTempEmail();
 
-        await fillRegistrationForm(page, account, email);
-        await handleRegistrationSlider(page);
-        await handleSubmit(page);
-        // 点击注册
-        await handleVerificationAndRegister(page, token);
+          await fillRegistrationForm(page, account, email);
+          await handleRegistrationSlider(page);
+          await handleSubmit(page);
+          // 点击注册
+          await handleVerificationAndRegister(page, token);
 
-        // 等待登录完成
-        await page.waitForSelector('.tnh-loggedin .tnh-ma');
-        logger.info(`账号 ${email} 注册成功！`);
-        await delay(3000);
+          // 等待登录完成
+          await page.waitForSelector('.tnh-loggedin .tnh-ma');
+          logger.info(`账号 ${email} 注册成功！`);
+          await delay(3000);
 
-        // 跳转到 ug 进行用户设置
-        await navigateToLoginPage(page);
+          // 跳转到 ug 进行用户设置
+          await navigateToLoginPage(page);
 
-        const isInLoginPage = await checkInLoginPage(page)
+          const isInLoginPage = await checkInLoginPage(page)
 
-        if (isInLoginPage) {
-          // 填写登录表单
-          await fillLoginForm(page, account, email);
-          // 滑动登录滑块
-          await handleLoginSlider(page);
+          if (isInLoginPage) {
+            // 填写登录表单
+            await fillLoginForm(page, account, email);
+            // 滑动登录滑块
+            await handleLoginSlider(page);
+          }
+
+          // 登录完成 -> 点击 Unlock your stage
+          await handleUnlockStage(page);
+
+          await browser.close();
+
+          mainWindow.webContents.send('task-log', `账号 ${email} 注册并登录成功`);
+        } catch (err) {
+          logger.error(`账号注册失败: ${err.message}`);
+          mainWindow.webContents.send('task-error', `账号注册失败: ${err.message}`);
+          throw new Error(`账号注册失败: ${err.message}`);
         }
+      })
+    });
 
-        // 登录完成 -> 点击 Unlock your stage
-        await handleUnlockStage(page);
+    // 使用 Promise.allSettled，确保所有任务都完成
+    const results = await Promise.allSettled(tasks);
 
-        await browser.close();
-
-        mainWindow.webContents.send('task-log', `账号 ${email} 注册并登录成功`);
-      } catch (err) {
-        logger.error(`账号注册失败: ${err.message}`);
-        mainWindow.webContents.send('task-error', `账号注册失败: ${err.message}`);
-        throw new Error(`账号注册失败: ${err.message}`);
-      }
-    })
-  });
-
-  // 使用 Promise.allSettled，确保所有任务都完成
-  const results = await Promise.allSettled(tasks);
-
-  // 处理每个任务的结果
-  results.forEach((result, index) => {
-    if (result.status === 'fulfilled') {
-      const taskResult = result.value;
-      if (taskResult && taskResult.error) {
-        // 捕获任务本身的异常
-        logger.error(`账号 ${accounts[index].firstName} 任务失败: ${taskResult.error.message}`);
+    // 处理每个任务的结果
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const taskResult = result.value;
+        if (taskResult && taskResult.error) {
+          // 捕获任务本身的异常
+          logger.error(`账号 ${accounts[index].firstName} 任务失败: ${taskResult.error.message}`);
+        } else {
+          // 成功任务
+          logger.info(`账号 ${accounts[index].firstName} 注册和登录成功！`);
+        }
       } else {
-        // 成功任务
-        logger.info(`账号 ${accounts[index].firstName} 注册和登录成功！`);
+        logger.error(`账号 ${accounts[index].firstName} 未知异常: ${result.reason}`);
       }
-    } else {
-      logger.error(`账号 ${accounts[index].firstName} 未知异常: ${result.reason}`);
-    }
-  });
+    });
+  } catch(e) {
+    mainWindow.webContents.send('task-log', `信息 err: ${e}`);
+  }
 
   logger.info('所有任务完成');
   mainWindow.webContents.send('task-complete', '所有任务完成');

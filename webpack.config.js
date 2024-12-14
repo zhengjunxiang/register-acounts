@@ -1,7 +1,6 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
-const nodeExternals = require('webpack-node-externals');
-const webpack = require('webpack');
+const CopyWebpackPlugin = require('copy-webpack-plugin'); // 引入插件
 
 module.exports = {
   mode: 'production',
@@ -14,11 +13,11 @@ module.exports = {
     __dirname: false,
     __filename: false,
   },
-  // externals: [
-  //   nodeExternals({
-  //     allowlist: ['puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth'] // 保留这些库
-  //   })
-  // ],
+  externals: {
+    puppeteer: "require('puppeteer')",
+    'puppeteer-extra': "require('puppeteer-extra')",
+    'puppeteer-extra-plugin-stealth': "require('puppeteer-extra-plugin-stealth')"
+  },
   resolve: {
     alias: {
       puppeteer: require.resolve('puppeteer-core'),
@@ -45,14 +44,13 @@ module.exports = {
     minimizer: [new TerserPlugin()],
   },
   plugins: [
-    new webpack.IgnorePlugin({
-      resourceRegExp: /clone-deep/,
-    }),
-    new webpack.IgnorePlugin({
-      resourceRegExp: /^bufferutil$/,
-    }),
-    new webpack.IgnorePlugin({
-      resourceRegExp: /^utf-8-validate$/,
+    // 使用 CopyWebpackPlugin 复制文件
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'preload.js', to: path.resolve(__dirname, 'dist') }, // 复制 preload.js
+        { from: 'index.html', to: path.resolve(__dirname, 'dist') },  // 复制 index.html
+        { from: 'accounts.json', to: path.resolve(__dirname, 'dist') }  // 复制 accounts.json
+      ],
     }),
   ]
 };
