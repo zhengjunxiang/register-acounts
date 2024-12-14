@@ -165,5 +165,4 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
 
   logger.info('所有任务完成');
   mainWindow.webContents.send('task-complete', '所有任务完成');
-
 });

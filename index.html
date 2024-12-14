@@ -38,9 +38,19 @@
       logDiv.appendChild(p);
     });
 
+    window.electronAPI.on('task-error', (message) => {
+      const logDiv = document.getElementById('log');
+      const p = document.createElement('p');
+      p.textContent = message;
+      logDiv.appendChild(p);
+    });
+
     // 监听任务完成
     window.electronAPI.on('task-complete', (message) => {
-      alert(message);
+      const logDiv = document.getElementById('log');
+      const p = document.createElement('p');
+      p.textContent = message;
+      logDiv.appendChild(p);
     });
   </script>
 </body>
