@@ -6,34 +6,13 @@
   "scripts": {
     "prebuild": "npm run clean",
     "build": "webpack --config webpack.config.js",
-    "start": "electron .",
-    "dist": "npm run build && electron-builder",
+    "start": "electron-forge start",
     "start:dev": "npm run build && electron .",
-    "clean": "rimraf dist release"
-  },
-  "build": {
-    "asar": false,
-    "appId": "com.example.registrationtool",
-    "productName": "批量注册工具",
-    "compression": "maximum",
-    "files": [
-      "dist/**/*",
-      "package.json",
-      "assets/**/*",
-      "public/**/*",
-      "preload.js",
-      "accounts.json",
-      "index.html"
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": "dmg"
-    }
+    "clean": "rimraf dist out",
+    "package": "npm run build && electron-forge package",
+    "package2": "npm run build && electron-forge package --arch x64 --platform win32",
+    "make": "npm run build && electron-forge make",
+    "make2": "npm run build && electron-forge make --arch x64 --platform win32"
   },
   "keywords": [],
   "author": "",
@@ -42,6 +21,7 @@
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "chrome-launcher": "^1.1.2",
+    "electron-squirrel-startup": "^1.0.1",
     "nanoid": "^5.0.9",
     "os": "^0.1.2",
     "p-limit": "^6.1.0",
@@ -52,10 +32,18 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.0",
+    "@electron-forge/cli": "^7.6.0",
+    "@electron-forge/maker-deb": "^7.6.0",
+    "@electron-forge/maker-dmg": "^7.6.0",
+    "@electron-forge/maker-rpm": "^7.6.0",
+    "@electron-forge/maker-squirrel": "^7.6.0",
+    "@electron-forge/maker-zip": "^7.6.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.6.0",
+    "@electron-forge/plugin-fuses": "^7.6.0",
+    "@electron/fuses": "^1.8.0",
     "babel-loader": "^9.2.1",
     "copy-webpack-plugin": "^12.0.2",
     "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
     "rimraf": "^6.0.1",
     "terser-webpack-plugin": "^5.3.10",
     "webpack": "^5.97.1",

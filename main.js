@@ -88,7 +88,6 @@ ipcMain.on('start-tasks', async (event, { maxConcurrency }) => {
     parseInt(maxConcurrency, 10),
     Math.max(2, Math.floor(os.cpus().length / 2))
   )
-  mainWindow.webContents.send('task-log', `信息 ${currentMaxConcurrency}`);
 
   const limit = pLimit(currentMaxConcurrency); // 设置并发数限制
 
